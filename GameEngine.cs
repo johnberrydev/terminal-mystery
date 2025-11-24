@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Serilog;
 using TerminalMystery.Models;
 using TerminalMystery.Services;
 
@@ -74,12 +75,22 @@ public class GameEngine
     
     private async Task StartNewGameAsync()
     {
+        Log.Information("Starting new game");
         _ui.ShowConnecting();
         _ui.ShowGeneratingNarrative();
         
+        Log.Information("Generating narrative...");
+        
         // Generate new narrative
         var narrative = await _llmService.GenerateNarrativeAsync();
+        
+        Log.Information("Narrative generated: {OrgName}", narrative.OrganizationName);
+        Log.Information("Generating hostname...");
+        
         var hostname = await _llmService.GenerateHostnameAsync(narrative.OrganizationName);
+        
+        Log.Information("Hostname: {Hostname}", hostname);
+        Log.Information("Prompting for session name...");
         
         _currentSession = new GameSession
         {
@@ -87,6 +98,8 @@ public class GameEngine
             SystemHostname = hostname,
             Name = _ui.PromptSessionName()
         };
+        
+        Log.Information("Session created: {SessionName}", _currentSession.Name);
         
         // Save initial session
         await _saveService.SaveSessionAsync(_currentSession);

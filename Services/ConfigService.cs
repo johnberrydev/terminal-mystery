@@ -49,7 +49,8 @@ public class ConfigService
         var defaultConfig = new GameConfig
         {
             GeminiApiKey = "YOUR_API_KEY_HERE",
-            ModelName = "gemini-2.0-flash",
+            NarrativeModel = "gemini-2.5-pro",
+            CommandModel = "gemini-2.5-flash",
             SavesDirectory = "saves"
         };
         

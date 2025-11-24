@@ -1,4 +1,13 @@
+using Serilog;
 using TerminalMystery;
+
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .WriteTo.File("game.log", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+Log.Information("Terminal Mystery starting...");
 
 // Set console encoding to support Unicode characters
 Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -13,5 +22,17 @@ Console.CancelKeyPress += (sender, e) =>
 };
 
 // Run the game
-var game = new GameEngine();
-await game.RunAsync();
+try
+{
+    var game = new GameEngine();
+    await game.RunAsync();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Unhandled exception");
+}
+finally
+{
+    Log.Information("Terminal Mystery shutting down");
+    await Log.CloseAndFlushAsync();
+}

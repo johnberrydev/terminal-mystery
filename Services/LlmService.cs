@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Mscc.GenerativeAI;
+using Serilog;
 using TerminalMystery.Models;
 
 namespace TerminalMystery.Services;
@@ -7,7 +8,8 @@ namespace TerminalMystery.Services;
 public class LlmService
 {
     private readonly ConfigService _configService;
-    private GenerativeModel? _model;
+    private GenerativeModel? _narrativeModel;
+    private GenerativeModel? _commandModel;
     
     private static readonly string[] PlotTypes =
     [
@@ -35,8 +37,15 @@ public class LlmService
     
     public void Initialize()
     {
+        Log.Information("Initializing LLM service");
+        Log.Information("Narrative model: {Model}", _configService.Config.NarrativeModel);
+        Log.Information("Command model: {Model}", _configService.Config.CommandModel);
+        
         var googleAI = new GoogleAI(_configService.Config.GeminiApiKey);
-        _model = googleAI.GenerativeModel(model: _configService.Config.ModelName);
+        _narrativeModel = googleAI.GenerativeModel(model: _configService.Config.NarrativeModel);
+        _commandModel = googleAI.GenerativeModel(model: _configService.Config.CommandModel);
+        
+        Log.Information("LLM service initialized");
     }
     
     public async Task<GameNarrative> GenerateNarrativeAsync()
@@ -75,14 +84,38 @@ Make the clues and tasks feel like authentic terminal commands. Include realisti
 
         try
         {
-            var response = await _model!.GenerateContent(prompt);
+            Log.Debug("Calling narrative model API...");
+            Log.Debug("Model: {Model}", _configService.Config.NarrativeModel);
+            Log.Debug("Prompt length: {Length} chars", prompt.Length);
+            
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            var task = _narrativeModel!.GenerateContent(prompt);
+            
+            Log.Debug("Awaiting API response (60s timeout)...");
+            var response = await task.WaitAsync(cts.Token);
+            
+            Log.Debug("API response received, length: {Length}", response.Text?.Length ?? 0);
+            Log.Debug("Response preview: {Preview}", response.Text?[..Math.Min(200, response.Text?.Length ?? 0)]);
+            
             var jsonText = ExtractJson(response.Text ?? "{}");
+            Log.Debug("Extracted JSON length: {Length}", jsonText.Length);
             
             var narrative = JsonSerializer.Deserialize<GameNarrative>(jsonText);
+            Log.Information("Narrative deserialized successfully");
             return narrative ?? CreateFallbackNarrative(selectedPlot);
         }
-        catch
+        catch (OperationCanceledException)
         {
+            Log.Error("Narrative generation timed out after 60 seconds");
+            return CreateFallbackNarrative(selectedPlot);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Narrative generation error: {Type} - {Message}", ex.GetType().Name, ex.Message);
+            if (ex.InnerException != null)
+            {
+                Log.Error("Inner exception: {Type} - {Message}", ex.InnerException.GetType().Name, ex.InnerException.Message);
+            }
             return CreateFallbackNarrative(selectedPlot);
         }
     }
@@ -151,7 +184,7 @@ Respond only with the terminal output. Do not break character.";
 
         try
         {
-            var response = await _model!.GenerateContent(prompt);
+            var response = await _commandModel!.GenerateContent(prompt);
             return response.Text ?? "SYSTEM ERROR: Response unavailable.";
         }
         catch (Exception ex)
@@ -170,11 +203,12 @@ Return ONLY the hostname, nothing else. No quotes, no explanation.";
 
         try
         {
-            var response = await _model!.GenerateContent(prompt);
+            var response = await _narrativeModel!.GenerateContent(prompt);
             return response.Text?.Trim().ToUpper().Replace(" ", "-") ?? "UNKNOWN-SYS";
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"\nHostname generation error: {ex.Message}");
             return "ENIGMA-" + new Random().Next(100, 999);
         }
     }
