@@ -73,6 +73,7 @@ public class TerminalUI
         ║                     TERMINAL MYSTERY v1.0                        ║
         ║                        MAIN TERMINAL                             ║
         ╠══════════════════════════════════════════════════════════════════╣
+        ║   Type '!menu' during gameplay to save, quit, or access options  ║
         ║                                                                  ║
         """;
         
@@ -111,9 +112,8 @@ public class TerminalUI
     {
         ClearScreen();
         
-        AnsiConsole.Write(new Markup("[green]"));
         AnsiConsole.WriteLine();
-        AnsiConsole.WriteLine("  ESTABLISHING CONNECTION...");
+        AnsiConsole.MarkupLine("[green]  ESTABLISHING CONNECTION...[/]");
         AnsiConsole.WriteLine();
         
         AnsiConsole.Status()
@@ -132,7 +132,6 @@ public class TerminalUI
                 Thread.Sleep(400);
             });
         
-        AnsiConsole.Write(new Markup("[/]"));
     }
     
     public void ShowGeneratingNarrative()
