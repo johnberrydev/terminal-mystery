@@ -1,0 +1,22 @@
+# Build outputs
+bin/
+obj/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Saves directory (contains user data)
+saves/
+
+# Config with API key - DO NOT COMMIT YOUR KEY
+# config.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

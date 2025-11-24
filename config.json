@@ -1,0 +1,5 @@
+{
+  "geminiApiKey": "YOUR_API_KEY_HERE",
+  "modelName": "gemini-2.0-flash",
+  "savesDirectory": "saves"
+}
